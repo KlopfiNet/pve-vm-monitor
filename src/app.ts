@@ -1,17 +1,18 @@
 import express from 'express';
 import routes from './routes';
 
-let globalConsts = require('consts.ts')
+import { EXPECTED_ENV_VARS } from './constants'
 
 const app = express();
 const port = 3000;
 
 // Sanity checks
-let expectedVars = globalConsts.expectedVars
-let isFail: boolean = true;
-for (const variable of expectedVars) {
-    if (process.env[variable] === null || process.env[variable] === undefined) {
-        console.log(`> Env var ${variable} is not set.`);
+let isFail: boolean = false;
+let k: keyof typeof EXPECTED_ENV_VARS;
+for (k in EXPECTED_ENV_VARS) {
+    const v = EXPECTED_ENV_VARS[k]
+    if (process.env[v] === null || process.env[v] === undefined) {
+        console.log(`> Env var ${v} is not set.`);
         isFail = true;
     }
 }

@@ -1,18 +1,73 @@
-let globalConsts = require('consts.ts')
-let expectedVars: string[] = globalConsts.expectedVars;
+import axios, { AxiosResponse, AxiosError } from 'axios';
 
-class Proxmox {
+// TESTING - allows absolutely any cert
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
+export class Proxmox {
     host: string;
-    api_token: string;
-    api_user; string;
+    node: string;
+    ssh_key: string;
+    auth_token: string;
 
-    constructor() {
-        this.host = process.env[expectedVars[0]];
-        this.api_token = message;
-        this.api_user = message;
+    constructor(host: string, node: string, api_token: string, api_user: string, ssh_key: string) {
+        this.host = host;
+        this.node = node;
+        this.auth_token = `PVEAPIToken=${api_user}=${api_token}`
+        this.ssh_key = ssh_key;
     }
 
-    greet() {
-        return "Hello, " + this.greeting;
+    private async axiosCaller<T>(
+        method: 'get' | 'post' | 'put' | 'delete',
+        url: string,
+        data?: any
+      ): Promise<T> {
+        try {
+            const headers: Record<string, string> = {};
+            headers['Authorization'] = this.auth_token;
+
+            const response: AxiosResponse = await axios({
+                method,
+                url,
+                data,
+                headers
+            });
+        
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                console.log("Request failed with auth token:", this.auth_token, "on url:", url)
+                throw new Error(error.message);
+            } else {
+                throw error;
+            }
+        }
+      }
+
+    public async ExecuteMonitorCommand(vmid: string, command: string) {
+        console.log(`[i] Calling monitor on ${vmid} with '${command}'`)
+        const url = this.host + `/nodes/${this.node}/qemu/${vmid}/monitor?command=${command}`
+
+        try {
+            const result = await this.axiosCaller('post', url);
+            return result;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public async GetVMStatus(vmid: string) {
+        console.log(`[i] Getting vm status for ${vmid}..`)
+        const url = this.host + `/nodes/${this.node}/qemu/${vmid}/status/current`
+        
+        try {
+            const result = await this.axiosCaller<any>('get', url);
+            return (result["data"]["status"] === "running")
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    public RetrieveImage() {
+        // Start SFTP session with SSH key
     }
 }
