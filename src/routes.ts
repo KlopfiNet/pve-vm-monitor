@@ -23,13 +23,24 @@ router.get('/view/:id', async function(req, res){
     const status: boolean = await proxmox.GetVMStatus(vmid)
     if (status) {
       //res.send({ message: "VM is running"})
-      proxmox.ExecuteMonitorCommand(vmid, "screendump /var/tmp/scr -f png")
+      await proxmox.ExecuteMonitorCommand(vmid, `screendump /opt/images/${vmid}.png -f png`)
 
-      const image: any = proxmox.RetrieveImage(vmid)
-      res.send(image)
+      const image: any = await proxmox.RetrieveImage(vmid)
+      image.pipe(res)
     } else {
       res.status(401).send({ error: "VM is not running" })
     }
+  } catch (error) {
+    res.status(500).send({ error: `${error}` })
+  }
+})
+
+router.get('/test', async function(req, res){
+  try {
+    const image = await proxmox.RetrieveImage("cat")
+    console.log("Sending cat")
+
+    image.pipe(res)
   } catch (error) {
     res.status(500).send({ error: `${error}` })
   }

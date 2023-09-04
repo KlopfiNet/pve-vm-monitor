@@ -79,7 +79,16 @@ export class Proxmox {
 
     public async RetrieveImage(vmid: string) {
         const url = `http://${this.host_ip}:${this.host_webserver_port}/${vmid}.png`
-        
-        // ToDo: Get image from proxmox fileserver
+        console.log("[i] Retrieving image from", url)
+
+        try {
+            const response = await axios.get(url, {
+                responseType: 'stream',
+            });
+            
+            return response.data
+        } catch (error) {
+            throw error
+        }
     }
 }
