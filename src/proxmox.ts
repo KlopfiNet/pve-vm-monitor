@@ -1,4 +1,4 @@
-import axios, { AxiosResponse, AxiosError } from 'axios';
+import axios, { AxiosResponse } from 'axios';
 
 // TESTING - allows absolutely any cert
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -6,14 +6,22 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 export class Proxmox {
     host: string;
     node: string;
-    ssh_key: string;
+    host_webserver_port: string;
     auth_token: string;
 
-    constructor(host: string, node: string, api_token: string, api_user: string, ssh_key: string) {
+    host_ip: string;
+    host_port: number;
+
+    constructor(host: string, node: string, api_token: string, api_user: string, host_webserver_port: string) {
         this.host = host;
         this.node = node;
         this.auth_token = `PVEAPIToken=${api_user}=${api_token}`
-        this.ssh_key = ssh_key;
+
+        this.host_webserver_port = host_webserver_port;
+
+        const host_url = new URL(host)
+        this.host_ip = host_url.hostname;
+        this.host_port = parseInt(host_url.port);
     }
 
     private async axiosCaller<T>(
@@ -49,8 +57,10 @@ export class Proxmox {
 
         try {
             const result = await this.axiosCaller('post', url);
+            console.log("[i] Monitor command was a success")
             return result;
         } catch (error) {
+            console.error("[x] Monitor command has failed")
             throw error;
         }
     }
@@ -67,7 +77,9 @@ export class Proxmox {
         }
     }
 
-    public RetrieveImage() {
-        // Start SFTP session with SSH key
+    public async RetrieveImage(vmid: string) {
+        const url = `http://${this.host_ip}:${this.host_webserver_port}/${vmid}.png`
+        
+        // ToDo: Get image from proxmox fileserver
     }
 }
