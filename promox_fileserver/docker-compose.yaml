@@ -1,0 +1,8 @@
+services:
+  http-fileserver:
+    image: halverneus/static-file-server:latest
+    restart: unless-stopped
+    volumes:
+      - '/opt/images:/web'
+    ports:
+      - "8080:8080"
