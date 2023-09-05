@@ -11,12 +11,28 @@ To that extend, a containerized solution is offered in `proxmox_fileserver/`.
 
 ## Usage
 The following API endpoints are available, further described in the wiki:  
-- `/watcher/:id` - `GET`/`POST`/`DESTROY`
+- `/watcher/:id/:param` - `GET`/`POST`/`DELETE`
    - Interacts with watchers
 - `/view/:id` - `GET`
    - Generates a current picture of the console
+   - `:id` represents a VM ID on the Proxmox host.
 
-`:id` represents a VM ID on the Proxmox host.
+
+### Watchers
+Endpoint: `/watcher/:id/:param` - `GET`/`POST`/`DELETE`  
+**Note:** `:param` is only available with `POST`.  
+
+#### GET
+Retrieves the status of the watcher with `:id`.
+
+#### POST
+If POSTing, `:param` can be either a VM ID or an action (`start`|`stop`).  
+- If `:param` is a VM ID, a new watcher will be created.
+- IF `:param` is an action, said action will be executed on the watcher.
+   - I.e. start/stop
+
+#### DELETE
+Destroys the watcher with `:id`.
 
 ## Testing
 - `.env` file
