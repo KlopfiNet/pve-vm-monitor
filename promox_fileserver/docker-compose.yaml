@@ -3,8 +3,24 @@ services:
     image: halverneus/static-file-server:latest
     restart: unless-stopped
     volumes:
-      - '/opt/images:/web'
+      - pve-pictures:/web
     ports:
       - "8080:8080"
     user: "${id_user}:${id_group}"
     # Run bootstrap.sh first
+
+  cleanup:
+    image: alpine:latest
+    restart: unless-stopped
+    command: sh -c 'while true; do find /opt/shared -type f -name "*.png" -mmin +30 -exec rm {} \;; sleep 1; done'
+    user: root
+    volumes:
+      - pve-pictures:/opt/shared
+
+volumes:
+  pve-pictures:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/images
