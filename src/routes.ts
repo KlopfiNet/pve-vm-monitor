@@ -101,6 +101,15 @@ router.get('/watcher/:id', (req, res) => {
   }
 });
 
+// Get watchers
+router.get('/watcher/', (req, res) => {
+  try {
+    res.send(watcher.GetWatchers())
+  } catch (error) {
+    res.status(500).send({ error: `${error}` })
+  }
+});
+
 // Get watcher step image
 router.get('/watcher/:id/:step', (req, res) => {
   const watcherId: string = req.params.id

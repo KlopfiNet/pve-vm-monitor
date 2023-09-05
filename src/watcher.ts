@@ -46,6 +46,10 @@ export class Watcher {
         }
     }
 
+    public GetWatchers(): watcherObject {
+        return this.watchers
+    }
+
     public async StartWatcher(id: number, vmid: number): Promise<boolean> {
         console.log(`[i] Creating watcher with ID ${id} on VM ${vmid}...`)
 

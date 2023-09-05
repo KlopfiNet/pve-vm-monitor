@@ -23,7 +23,8 @@ Endpoint: `/watcher/:id/:param` - `GET`/`POST`/`DELETE`
 **Note:** `:param` is only available with `POST`.  
 
 #### GET
-Retrieves the status of the watcher with `:id`.
+Retrieves the status of the watcher with `:id`.  
+If Getting just `/watcher`, will return an array of all registered watchers.
 
 #### POST
 If POSTing, `:param` can be either a VM ID or an action (`start`|`stop`).  
