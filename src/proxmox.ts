@@ -96,8 +96,8 @@ export class Proxmox {
         }
     }
 
-    public async RetrieveImage(vmid: string) {
-        const url = `http://${this.host_ip}:${this.host_webserver_port}/${vmid}.png`
+    public async RetrieveImage(image: string) {
+        const url = `http://${this.host_ip}:${this.host_webserver_port}/${image}.png`
         console.log("[i] Retrieving image from", url)
 
         try {

@@ -52,7 +52,7 @@ router.post('/watcher/:id/:param', async function (req, res){
         await watcher.StartWatcher(+watcherId, +param);
         res.send({ message: `Watcher with ID ${watcherId} has been created.` })
       }else {
-        res.status(401).send({ error: `Watcher with ID ${watcherId} already exists.` })
+        res.status(400).send({ error: `Watcher with ID ${watcherId} already exists.` })
       }
     } else {
       if (!permissibleActions.includes(param)) {
@@ -63,7 +63,12 @@ router.post('/watcher/:id/:param', async function (req, res){
         res.send(404).send({ error: `Watcher with ID ${watcherId} does not exist.` })
       }
 
-      // ToDo: Execute action
+      if (param === "start") {
+        watcher.StopWatcher(+watcherId)
+      } else if (param === "stop") {
+        watcher.StopWatcher(+watcherId)
+      }
+
       res.send({ message: `Executed '${param}' on watcher ${watcherId}.` })
     }
   } catch (error) {
@@ -80,24 +85,21 @@ router.delete('/watcher/:id', async function (req, res){
       watcher.DestroyWatcher(+watcherId);
       res.send({ message: `Watcher with ID ${watcherId} has been destroyed.` })
     } else {
-      res.status(401).send({ error: `Watcher with ID ${watcherId} does not exist.` })
+      res.status(404).send({ error: `Watcher with ID ${watcherId} does not exist.` })
     }
   } catch (error) {
     res.status(500).send({ error: `${error}` })
   }
 })
 
-// Get watcher status
+// Get watcher
 router.get('/watcher/:id', (req, res) => {
   const watcherId: string = req.params.id
 
   if (!watcher.DoesWatcherExist(+watcherId)) {
     res.status(404).send({ error: `Watcher with ID ${watcherId} was not found.` })
   } else {
-    res.send({ 
-      active: watcher.GetWatcherStatus(+watcherId).active,
-      vmid: watcher.GetWatcherStatus(+watcherId).vmid
-    })
+    res.send(watcher.GetWatcher(+watcherId))
   }
 });
 
@@ -111,17 +113,30 @@ router.get('/watcher/', (req, res) => {
 });
 
 // Get watcher step image
-router.get('/watcher/:id/:step', (req, res) => {
+router.get('/watcher/:id/:step', async function(req, res){
   const watcherId: string = req.params.id
-  const watcherStep: string = req.params.step
-
-  if (!watcher.DoesWatcherExist(+watcherId)) {
-    res.status(404).send({ error: `Watcher with ID ${watcherId} was not found.` })
-  }
+  const watcherStep: number = +req.params.step
   
-  // ToDo: Get image of specific watcher step 
-
-  res.send("NOT IMPLEMENTED")
+  try {
+    if (!watcher.DoesWatcherExist(+watcherId)) {
+      res.status(404).send({ error: `Watcher with ID ${watcherId} was not found.` })
+    }
+    
+    // ToDo: Get image of specific watcher step
+    // Sanity checks
+    const watcherObj = watcher.GetWatcher(+watcherId)
+    if (watcherObj.step > watcherStep || watcherStep < 1) {
+      res.status(400).send(`Watcher step is out of bounds. (Min: 1, max: ${watcherObj.step})`)
+    }
+  
+    const vmId = watcherObj.vmid
+    const filename: string = `${watcherId}_${vmId}_${watcherStep}`
+  
+    const image = await PROXMOX.RetrieveImage(filename)
+    image.pipe(res)
+  } catch (error) {
+    res.status(500).send({ error: `${error}` })
+  }
 });
 
 // ----------------------------[ TEST ]

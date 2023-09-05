@@ -33,6 +33,15 @@ export class Watcher {
         return this.watchers.hasOwnProperty(id);
     }
 
+    public GetWatcher(id: number): any {
+        if (this.DoesWatcherExist(id)) {
+            const returnObj: watcherObject = this.watchers[id]
+            return returnObj
+        } else {
+            throw new Error(`Watcher with ID ${id} does not exist.`)
+        }
+    }
+
     public GetWatcherStatus(id: number): watcherStatusObject {
         if (this.DoesWatcherExist(id)) {
             const returnObj: watcherStatusObject = {
@@ -76,6 +85,14 @@ export class Watcher {
         }
     }
 
+    public ResumeWatcher(id: number) {
+        if (!this.DoesWatcherExist(id)) {
+            throw new Error(`Watcher with ID ${id} does not exist.`)
+        }
+
+        this.watchers[id].active = true;
+    }
+
     public StopWatcher(id: number) {
         if (!this.DoesWatcherExist(id)) {
             throw new Error(`Watcher with ID ${id} does not exist.`)
@@ -106,8 +123,9 @@ export class Watcher {
 
         const vmid: number = this.watchers[id].vmid
         const step: number = this.watchers[id].step
+        const filename: string = `${id}_${vmid}_${step}.png`
 
-        await PROXMOX.ExecuteMonitorCommand(vmid.toString(), `screendump /opt/images/${vmid}_${id}_${step}.png -f png`)
+        await PROXMOX.ExecuteMonitorCommand(vmid.toString(), `screendump /opt/images/${filename} -f png`)
         this.watchers[id].step++
 
         return true
