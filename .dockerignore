@@ -1,0 +1,5 @@
+**/node_modules
+*.md
+
+proxmox_fileserver/
+tests/

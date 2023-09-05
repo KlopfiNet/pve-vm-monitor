@@ -35,14 +35,15 @@ If POSTing, `:param` can be either a VM ID or an action (`start`|`stop`).
 #### DELETE
 Destroys the watcher with `:id`.
 
-## Testing
+## Usage
 - `.env` file
 ```
 api_user=...
 api_key=...
 ```
+- `docker compose up -d`
 
-- Test
+## Testing
 ```bash
 set -o allexport
 source .env
@@ -55,4 +56,10 @@ export PM_API_USER=${api_user}
 export PM_API_KEY=${api_key}
 
 npm test
+```
+
+### Image
+```bash
+docker build . -t pve-vm-monitor:test
+docker run pve-vm-monitor:test
 ```
