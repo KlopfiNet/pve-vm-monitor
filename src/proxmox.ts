@@ -1,4 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
+import { EXPECTED_ENV_VARS } from './globals';
 
 // TESTING - allows absolutely any cert
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -12,7 +13,24 @@ export class Proxmox {
     host_ip: string;
     host_port: number;
 
+    // ------------------------------------------------------------
+
     constructor(host: string, node: string, api_token: string, api_user: string, host_webserver_port: string) {
+        // Preflight checks
+        let isFail: boolean = false;
+        let k: keyof typeof EXPECTED_ENV_VARS;
+        
+        for (k in EXPECTED_ENV_VARS) {
+            const v = EXPECTED_ENV_VARS[k]
+            if (process.env[v] === null || process.env[v] === undefined) {
+                console.log(`> Env var ${v} is not set.`);
+                isFail = true;
+            }
+        }
+
+        if (isFail) throw new Error("Not all expected env vars have been set.");
+
+        // Construct
         this.host = host;
         this.node = node;
         this.auth_token = `PVEAPIToken=${api_user}=${api_token}`
