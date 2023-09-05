@@ -37,5 +37,5 @@ export PM_WEBSERVER_PORT=8080 # see proxmox_fileserver/
 export PM_API_USER=${api_user}
 export PM_API_KEY=${api_key}
 
-npm start
+npm test
 ```

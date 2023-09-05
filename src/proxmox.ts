@@ -19,7 +19,7 @@ export class Proxmox {
         // Preflight checks
         let isFail: boolean = false;
         let k: keyof typeof EXPECTED_ENV_VARS;
-        
+
         for (k in EXPECTED_ENV_VARS) {
             const v = EXPECTED_ENV_VARS[k]
             if (process.env[v] === null || process.env[v] === undefined) {
@@ -61,7 +61,7 @@ export class Proxmox {
             return response.data;
         } catch (error) {
             if (axios.isAxiosError(error)) {
-                console.log("Request failed with auth token:", this.auth_token, "on url:", url)
+                console.log("[x] Axios request failed with auth token:", this.auth_token, "on url:", url)
                 throw new Error(error.message);
             } else {
                 throw error;
@@ -91,7 +91,8 @@ export class Proxmox {
             const result = await this.axiosCaller<any>('get', url);
             return (result["data"]["status"] === "running")
         } catch (error) {
-            throw error;
+            // VM does not exist
+            return false
         }
     }
 
