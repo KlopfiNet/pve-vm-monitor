@@ -81,7 +81,7 @@ export class Watcher {
             this.watchers[id] = {
                 vmid: vmid,
                 active: true,
-                step: 1,
+                step: 0,
                 lastExec: Date.now() - (this.interval * 1000)
             }
     
