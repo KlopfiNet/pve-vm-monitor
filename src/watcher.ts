@@ -17,7 +17,7 @@ type watcherStatusObject = {
 export class Watcher {
     interval: number;
     watchers: watcherObject;
-    loop: ReturnType<typeof setTimeout>
+    loop: ReturnType<typeof setInterval>
 
     // ------------------------------------------------------------
 
@@ -26,7 +26,14 @@ export class Watcher {
         this.interval = interval
 
         // Start watcher loop
-        this.loop = setTimeout(() => this.triggerWatchers(), 500)
+        //this.loop = setTimeout(() => , 500)
+        this.loop = setInterval(async () => {
+            await this.triggerWatchers()
+        }, 500)
+    }
+
+    private delay(ms: number) {
+        return new Promise<void>((resolve) => setTimeout(resolve, ms));
     }
     
     public DoesWatcherExist(id: number): boolean {
@@ -75,7 +82,7 @@ export class Watcher {
                 vmid: vmid,
                 active: true,
                 step: 1,
-                lastExec: Date.now()
+                lastExec: Date.now() - (this.interval * 1000)
             }
     
             return true
@@ -126,7 +133,9 @@ export class Watcher {
         const filename: string = `${id}_${vmid}_${step}.png`
 
         await PROXMOX.ExecuteMonitorCommand(vmid.toString(), `screendump /opt/images/${filename} -f png`)
+
         this.watchers[id].step++
+        this.watchers[id].lastExec = Date.now()
 
         return true
     }
@@ -143,22 +152,23 @@ export class Watcher {
         const time_now: number = Date.now()
         const time_diff: number = time_now - this.watchers[id].lastExec
 
-        if (time_diff < this.interval) {
-            console.log(`[i] Watcher with ID ${id} has not yet reached target interval of ${this.interval}`)
+        // this.interval is in milliseconds
+        if (time_diff < (this.interval * 1000)) {
+            //console.log(`[i] Watcher with ID ${id} has not yet reached target interval of ${this.interval}`)
             return false
         }
 
-        console.log(`[i] Executing watcher with ID ${id}`)
+        //console.log(`[i] Executing watcher with ID ${id}`)
         return await this.executeWatcher(id)
     }
 
     private async triggerWatchers() {
-        for (const key in Object.keys(this.watchers)) {
-            console.log(`[i] Triggering watcher ${key}...`)
+        for (const key in this.watchers) {
+            //console.log(`[i] Triggering watcher ${key}...`)
             try {
                 await this.triggerWatcher(+key)
-            } catch {
-                console.log("[x] Trigger failed:", key)
+            } catch (error) {
+                console.log(`> Trigger failed: ${error}`)
             }
         }
     }
