@@ -44,23 +44,27 @@ router.post('/watcher/:id/:param', async function (req, res){
 
   // 'param' can be either an int (vmId), or "start"/"stop" (action)
   const paramIsId: boolean = !isNaN(Number(param))
+  const watcherExists: Boolean = watcher.DoesWatcherExist(+watcherId)
 
   try {
-    if (!watcher.DoesWatcherExist(+watcherId)) {
-      if (paramIsId) {
+    if (paramIsId) {
+      if (!watcherExists) {
         await watcher.StartWatcher(+watcherId, +param);
-        res.send({ message: `Watcher with ID ${watcherId} has started.` })
-      } else {
-        if (!permissibleActions.includes(param)) {
-          throw new Error(`${param} is not a permissible action: ${permissibleActions}`)
-        }
-
-        // ToDo: Execute action
-        res.send({ message: `Executed ${param} on watcher ${watcherId}.` })
+        res.send({ message: `Watcher with ID ${watcherId} has been created.` })
+      }else {
+        res.status(401).send({ error: `Watcher with ID ${watcherId} already exists.` })
+      }
+    } else {
+      if (!permissibleActions.includes(param)) {
+        throw new Error(`${param} is not a permissible action: ${permissibleActions}`)
       }
 
-    } else {
-      res.status(401).send({ error: `Watcher with ID ${watcherId} already exists.` })
+      if (!watcherExists) {
+        res.send(404).send({ error: `Watcher with ID ${watcherId} does not exist.` })
+      }
+
+      // ToDo: Execute action
+      res.send({ message: `Executed '${param}' on watcher ${watcherId}.` })
     }
   } catch (error) {
     res.status(500).send({ error: `${error}` })
@@ -73,8 +77,8 @@ router.delete('/watcher/:id', async function (req, res){
 
   try {
     if (watcher.DoesWatcherExist(+watcherId)) {
-      watcher.StopWatcher(+watcherId);
-      res.send({ message: `Watcher with ID ${watcherId} has started.` })
+      watcher.DestroyWatcher(+watcherId);
+      res.send({ message: `Watcher with ID ${watcherId} has been destroyed.` })
     } else {
       res.status(401).send({ error: `Watcher with ID ${watcherId} does not exist.` })
     }

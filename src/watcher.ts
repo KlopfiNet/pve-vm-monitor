@@ -85,6 +85,14 @@ export class Watcher {
         }
     }
 
+    public DestroyWatcher(id: number) {
+        if (!this.DoesWatcherExist(id)) {
+            throw new Error(`Watcher with ID ${id} does not exist.`)
+        }
+
+        delete this.watchers[id]
+    }
+
     // ------------------------------------------------------------
 
     private async executeWatcher(id: number): Promise<boolean> {
