@@ -97,7 +97,12 @@ export class Watcher {
             throw new Error(`Watcher with ID ${id} does not exist.`)
         }
 
-        this.watchers[id].active = true;
+        let state: Boolean = this.watchers[id].active
+        if (state) {
+            throw new Error(`Watcher with ID ${id} is already active.`)
+        } else {
+            this.watchers[id].active = true
+        }
     }
 
     public StopWatcher(id: number) {
@@ -127,14 +132,14 @@ export class Watcher {
         if (!this.DoesWatcherExist(id)) {
             throw new Error(`Watcher with ID ${id} does not exist.`)
         }
+        
+        this.watchers[id].step++
 
         const vmid: number = this.watchers[id].vmid
         const step: number = this.watchers[id].step
         const filename: string = `${id}_${vmid}_${step}.png`
 
         await PROXMOX.ExecuteMonitorCommand(vmid.toString(), `screendump /opt/images/${filename} -f png`)
-
-        this.watchers[id].step++
         this.watchers[id].lastExec = Date.now()
 
         return true
@@ -145,7 +150,6 @@ export class Watcher {
             throw new Error(`Watcher with ID ${id} does not exist.`)
         }
         if (!this.GetWatcherStatus(id).active) {
-            console.log(`[i] Watcher with ID ${id} was triggered, but is inactive.`)
             return false
         }
 

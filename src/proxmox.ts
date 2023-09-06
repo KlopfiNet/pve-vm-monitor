@@ -102,10 +102,10 @@ export class Proxmox {
 
         try {
             const response = await axios.get(url, {
-                responseType: 'stream',
+                responseType: 'arraybuffer',
             });
             
-            return response.data
+            return response
         } catch (error) {
             throw error
         }

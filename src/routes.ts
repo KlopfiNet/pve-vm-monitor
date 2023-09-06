@@ -1,13 +1,15 @@
 import { Router } from 'express';
 import { PROXMOX } from './globals'
 import { Watcher } from './watcher';
-import { isNullishCoalesce } from 'typescript';
-import { isNumber } from 'util';
+import * as fs from 'fs';
+import sharp from 'sharp';
+import tar from 'tar';
 
 const router = Router();
 const watcher = new Watcher();
 
 const permissibleActions: string[] = ["start", "stop"];
+const imagesArchiveName: string = "images.tar.bz2"
 
 router.get('/', (req, res) => {
   res.send('Hello, I am alive!');
@@ -26,7 +28,7 @@ router.get('/view/:id', async function(req, res){
       await PROXMOX.ExecuteMonitorCommand(vmid, `screendump /opt/images/${vmid}.png -f png`)
 
       const image: any = await PROXMOX.RetrieveImage(vmid)
-      image.pipe(res)
+      image.data.pipe(res)
     } else {
       res.status(401).send({ error: "VM is not running" })
     }
@@ -66,7 +68,7 @@ router.post('/watcher/:id/:param', async function (req, res){
       }
 
       if (param === "start") {
-        watcher.StopWatcher(+watcherId)
+        watcher.ResumeWatcher(+watcherId)
       } else if (param === "stop") {
         watcher.StopWatcher(+watcherId)
       }
@@ -91,6 +93,75 @@ router.delete('/watcher/:id', async function (req, res){
     }
   } catch (error) {
     res.status(500).send({ error: `${error}` })
+  }
+})
+
+// Get watcher archive
+router.get('/watcher/:id/archive', async function(req, res){
+  const watcherId: string = req.params.id
+
+  console.log(`[i] Getting watcher archive (${watcherId}...`)
+  const existingFilenames = [];
+  
+  try {
+    if (!watcher.DoesWatcherExist(+watcherId)) {
+      res.status(404).send({ error: `Watcher with ID ${watcherId} was not found.` })
+      return
+    }
+
+    const watcherObj = watcher.GetWatcher(+watcherId);
+    console.log(`> Preparing archive of ${watcherObj.step} steps...`)
+
+    // Parallel download of images    
+    const downloadPromises: Promise<void>[] = [];
+    const filesDownloaded: string[] = [];
+    for (let i = 1; i <= watcherObj.step; i++) {
+      downloadPromises.push(downloadImage(watcherId, watcherObj.vmid, i.toString()));
+      filesDownloaded.push(`${watcherId}_${watcherObj.vmid}_${i}.png`)
+    }
+    
+    console.log(`> Awaiting download promises...`)
+    await Promise.all(downloadPromises);
+
+    // Check for existing files before archiving
+    console.log(`> Awaiting archival...`)
+    
+    for (const filename of filesDownloaded) {
+      if (fs.existsSync(filename)) {
+        existingFilenames.push(filename);
+      } else {
+        console.warn(`> File ${filename} not found. Skipping.`);
+      }
+    }
+
+    await tar.c(
+      {
+        file: imagesArchiveName,
+        gzip: true,
+        sync: true,
+        cwd: './',
+      },
+      filesDownloaded
+    );
+
+    console.log(`> Returning archive...`)
+    res.download(imagesArchiveName, imagesArchiveName, (err) => {
+      if (err) {
+        console.error('> Error sending the archive:', err);
+        res.status(500).send({ error: `Could not send archive: ${err}` })
+      }
+    });
+  } catch (error) {
+    console.error("[x] Process has failed.")
+    res.status(500).send({ error: `${error}` })
+  } finally {
+    // Cleanup
+    console.log("Executing cleanup...")
+    
+    const filenamesToDelete = existingFilenames; //[imagesArchiveName, ...existingFilenames];
+    for (const filename of filenamesToDelete) {
+      fs.unlinkSync(filename);
+    }
   }
 })
 
@@ -122,7 +193,7 @@ router.get('/watcher/:id/:step', async function(req, res){
     const filename: string = `${watcherId}_${vmId}_${watcherStep}`
   
     const image = await PROXMOX.RetrieveImage(filename)
-    image.pipe(res)
+    image.data.pipe(res)
   } catch (error) {
     res.status(500).send({ error: `${error}` })
   }
@@ -148,17 +219,17 @@ router.get('/watcher/', (req, res) => {
   }
 });
 
-// ----------------------------[ TEST ]
-
-router.get('/test', async function(req, res){
-  try {
-    const image = await PROXMOX.RetrieveImage("cat")
-    console.log("Sending cat")
-
-    image.pipe(res)
-  } catch (error) {
-    res.status(500).send({ error: `${error}` })
-  }
-})
+// -----------------------------[ FUNCTIONS ]
+const downloadImage = async (watcherId: string, vmId: string, step: string): Promise<void> => {
+  const filename: string = `${watcherId}_${vmId}_${step}`
+  const image = await PROXMOX.RetrieveImage(filename)
+  
+  // Resize and locally store image
+  const localFilename = `${filename}.png`
+  const buffer = Buffer.from(image.data)
+  await sharp(buffer)
+    .resize({ width: Math.floor(0.7 * 1920), withoutEnlargement: true }) // 30% reduction in size
+    .toFile(localFilename);
+}
 
 export default router;

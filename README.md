@@ -12,6 +12,7 @@ To that extend, a containerized solution is offered in `proxmox_fileserver/`.
 ## Usage
 The following API endpoints are available, further described in the wiki:  
 - `/watcher/:id/:param` - `GET`/`POST`/`DELETE`
+- `/watcher/:id/:archive` - `GET`
    - Interacts with watchers
 - `/view/:id` - `GET`
    - Generates a current picture of the console
@@ -34,6 +35,11 @@ If POSTing, `:param` can be either a VM ID or an action (`start`|`stop`).
 
 #### DELETE
 Destroys the watcher with `:id`.
+
+### Archivin
+Endpoint: `/watcher/:id/archive` - `GET`  
+Returns a bz2 archive of all pictures that this watcher `:id` has made.  
+Depending on the amount of pictures (steps), the endpoint is slow to respond.
 
 ## Usage
 - `.env` file
