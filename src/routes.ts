@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { PROXMOX } from './globals'
 import { Watcher } from './watcher';
+import {v4 as uuidv4} from 'uuid';
 import * as fs from 'fs';
 import sharp from 'sharp';
 import tar from 'tar';
@@ -9,7 +10,6 @@ const router = Router();
 const watcher = new Watcher();
 
 const permissibleActions: string[] = ["start", "stop"];
-const imagesArchiveName: string = "images.tar.bz2"
 
 router.get('/', (req, res) => {
   res.send('Hello, I am alive!');
@@ -102,7 +102,10 @@ router.get('/watcher/:id/archive', async function(req, res){
 
   console.log(`[i] Getting watcher archive (${watcherId}...`)
   const existingFilenames = [];
-  
+
+  const uuidPart = uuidv4().split('-')[0];
+  const imagesArchiveName: string = `images-${uuidPart}.tar.bz2`
+
   try {
     if (!watcher.DoesWatcherExist(+watcherId)) {
       res.status(404).send({ error: `Watcher with ID ${watcherId} was not found.` })
@@ -145,6 +148,13 @@ router.get('/watcher/:id/archive', async function(req, res){
     );
 
     console.log(`> Returning archive...`)
+
+    // Destroy archive on events
+    res.on('finish', () => { fs.unlinkSync(imagesArchiveName);  });
+    res.on('close', () => {
+      if (fs.existsSync(imagesArchiveName)) fs.unlinkSync(imagesArchiveName);
+    });
+
     res.download(imagesArchiveName, imagesArchiveName, (err) => {
       if (err) {
         console.error('> Error sending the archive:', err);
@@ -157,8 +167,9 @@ router.get('/watcher/:id/archive', async function(req, res){
   } finally {
     // Cleanup
     console.log("Executing cleanup...")
-    
-    const filenamesToDelete = existingFilenames; //[imagesArchiveName, ...existingFilenames];
+
+    //[imagesArchiveName, ...existingFilenames]; <- results in 404 on imagesArchiveName
+    const filenamesToDelete = existingFilenames;
     for (const filename of filenamesToDelete) {
       fs.unlinkSync(filename);
     }
@@ -178,7 +189,6 @@ router.get('/watcher/:id/:step', async function(req, res){
       return
     }
     
-    // ToDo: Get image of specific watcher step
     // Sanity checks
     const watcherObj = watcher.GetWatcher(+watcherId)
     if (watcherStep > watcherObj.step || watcherStep < 1) {
@@ -228,7 +238,7 @@ const downloadImage = async (watcherId: string, vmId: string, step: string): Pro
   const localFilename = `${filename}.png`
   const buffer = Buffer.from(image.data)
   await sharp(buffer)
-    .resize({ width: Math.floor(0.7 * 1920), withoutEnlargement: true }) // 30% reduction in size
+    .resize({ width: Math.floor(0.5 * 1920), withoutEnlargement: true }) // 30% reduction in size
     .toFile(localFilename);
 }
 
